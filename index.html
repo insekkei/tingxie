@@ -60,7 +60,9 @@
   .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--orange),#FFB56B);transition:.3s}
   .note{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6}
   /* 生字 chips */
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;min-height:10px}
+  .chips{margin-top:10px;min-height:10px}
+  .chips-row{display:flex;flex-wrap:wrap;gap:8px}
+  .chips-row + .chips-row{margin-top:8px;padding-top:8px;border-top:1px dashed #EADFD2}
   .chip{
     background:#FFF3E8;border:1px solid #FFD9BC;color:var(--orange-d);border-radius:12px;
     padding:7px 10px;font-size:20px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;
@@ -798,7 +800,10 @@ HINT_DATA.trim().split(/\n+/).forEach(line=>{
 });
 
 /* ================= 状态 ================= */
-let chars = [];                 // 生字清单（保持输入顺序）
+let lines = [];                 // 生字清单，按图片的行分组：[[行1的字...],[行2的字...]...]
+let chars = [];                 // 由 lines 展平得到（去重、保持顺序），听写等逻辑用
+function syncChars(){ const s=new Set(), out=[]; lines.forEach(r=>r.forEach(c=>{ if(!s.has(c)){ s.add(c); out.push(c); } })); chars = out; }
+function saveLines(){ save('tx_lines', lines); }
 const custom = load('tx_custom_hints', {});   // 自定义提示 {字:[a,b]}
 const SET_KEY = 'tx_settings_v3';   // v3：默认 15 秒、不报序号、隔 5 秒重复
 const settings = Object.assign({dur:15, gap:5, shuffle:true, twice:true, showHint:true, sayIdx:false, rate:0.85}, load(SET_KEY, {}));
@@ -830,17 +835,29 @@ function renderChips(){
   document.getElementById('dropMissBtn').style.display = (chars.length && miss.length) ? 'block' : 'none';
   if(!chars.length){ chipsEl.innerHTML = '<span class="empty">还没有生字，先上传图片或手动输入～</span>'; return; }
   chipsEl.innerHTML = '';
-  chars.forEach((c,i)=>{
-    const s = document.createElement('span');
-    s.className = 'chip' + (hintOf(c) ? '' : ' miss');
-    s.title = hintOf(c) ? ('点击修改组词：' + hintOf(c).join('，')) : '还没有组词，点击补一个';
-    s.innerHTML = c + '<span class="x">×</span>';
-    s.onclick = (e)=>{
-      if(e.target.classList.contains('x')){ chars.splice(i,1); renderChips(); return; }
-      openFill([c]);
-    };
-    chipsEl.appendChild(s);
+  /* 按图片的行分组展示：一行一个 chips-row，行间用虚线分隔 */
+  lines.forEach(row=>{
+    if(!row.length) return;
+    const r = document.createElement('div');
+    r.className = 'chips-row';
+    row.forEach(c=>{
+      const s = document.createElement('span');
+      s.className = 'chip' + (hintOf(c) ? '' : ' miss');
+      s.title = hintOf(c) ? ('点击修改组词：' + hintOf(c).join('，')) : '还没有组词，点击补一个';
+      s.innerHTML = c + '<span class="x">×</span>';
+      s.onclick = (e)=>{
+        if(e.target.classList.contains('x')){ removeChar(c); return; }
+        openFill([c]);
+      };
+      r.appendChild(s);
+    });
+    chipsEl.appendChild(r);
   });
+}
+
+function removeChar(c){
+  lines = lines.map(r=>r.filter(x=>x!==c)).filter(r=>r.length);
+  syncChars(); renderChips(); saveLines();
 }
 
 /* 补词组面板：填「善良」→ 自动念成「善良的善」 */
@@ -880,10 +897,16 @@ function saveFill(){
   toast('已保存 ' + n + ' 个字的组词');
 }
 function addChars(str){
-  const found = (str.match(/[\u4e00-\u9fff]/g) || []);
-  if(!found.length){ toast('没有识别到汉字'); return 0; }
-  let n=0; found.forEach(c=>{ if(!chars.includes(c)){ chars.push(c); n++; } });
-  renderChips(); return n;
+  /* 按换行拆成行，每行生成一个行分组；重复的字只保留第一次出现 */
+  const rows = String(str).split(/\n+/).map(l=>(l.match(/[\u4e00-\u9fff]/g) || []));
+  if(!rows.some(r=>r.length)){ toast('没有识别到汉字'); return 0; }
+  const seen = new Set(chars); let n=0;
+  rows.forEach(r=>{
+    const add = [];
+    r.forEach(c=>{ if(!seen.has(c)){ seen.add(c); add.push(c); } });
+    if(add.length){ lines.push(add); n += add.length; }
+  });
+  syncChars(); renderChips(); saveLines(); return n;
 }
 
 /* ================= 上传 & OCR ================= */
@@ -1078,12 +1101,13 @@ async function runOCR(file){
 
   bar.style.width='100%';
   if(best && best.uniq.length){
-    const n = addChars(best.uniq.join(''));
     /* 展示带原始换行的识别原文，方便和照片对照 */
     const rawWrap = document.getElementById('rawWrap'), rawOut = document.getElementById('rawOut');
-    const rawText = (best.raw && best.raw.includes('\n')) ? best.raw : best.uniq.join('');
+    const rawText = (best.raw && best.raw.replace(/\n/g,'')) ? best.raw : best.uniq.join('');
     rawOut.textContent = rawText;
     rawWrap.style.display = 'block';
+    /* 生字清单也按图片的行分组加入 */
+    const n = addChars(rawText);
     let extra = '';
     if(best.low && best.low.length){
       extra = '<br>⚠️ 这 <b style="color:#E8543F">' + best.low.join(' ') + '</b> 几个把握不大，请重点核对。';
@@ -1347,13 +1371,13 @@ document.getElementById('dropMissBtn').onclick = ()=>{
   const miss = missing();
   if(!miss.length) return;
   if(confirm('把 ' + miss.length + ' 个还没有组词的字（' + miss.join(' ') + '）从清单里移除？')){
-    chars = chars.filter(c=>hintOf(c));
-    renderChips(); save('tx_chars', chars);
+    lines = lines.map(r=>r.filter(c=>hintOf(c))).filter(r=>r.length);
+    syncChars(); renderChips(); saveLines();
     toast('已移除 ' + miss.length + ' 个字');
   }
 };
 document.getElementById('clearBtn').onclick = ()=>{
-  if(chars.length && confirm('清空整个生字清单？组词提示会保留。')){ chars = []; renderChips(); save('tx_chars', chars); toast('已清空'); }
+  if(chars.length && confirm('清空整个生字清单？组词提示会保留。')){ lines = []; syncChars(); renderChips(); saveLines(); toast('已清空'); }
 };
 document.getElementById('copyRaw').onclick = ()=>{
   const t = document.getElementById('rawOut').textContent;
@@ -1388,10 +1412,11 @@ document.getElementById('back').onclick = ()=>{
   document.getElementById('setup').style.display='block';
 };
 
-/* 初始化 */
-chars = load('tx_chars', []);
+/* 初始化（兼容旧版扁平清单：迁移成单行分组） */
+lines = load('tx_lines', null) || [load('tx_chars', [])];
+syncChars(); saveLines();
 renderChips();
-window.addEventListener('beforeunload', ()=> save('tx_chars', chars));
+window.addEventListener('beforeunload', saveLines);
 </script>
 </body>
 </html>
