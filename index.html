@@ -65,7 +65,11 @@
     background:#FFF3E8;border:1px solid #FFD9BC;color:var(--orange-d);border-radius:12px;
     padding:7px 10px;font-size:20px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;
   }
-  .chip .x{font-size:13px;color:#C7916A;font-weight:700}
+  .chip .x{
+    font-size:18px;color:#C7916A;font-weight:700;line-height:1;
+    padding:2px 4px;margin:-2px -4px -2px 2px;border-radius:8px;
+  }
+  .chip .x:active{background:#FFE3CF}
   .empty{color:var(--sub);font-size:13px}
   .sw{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
   .sw:last-child{border-bottom:0}
@@ -104,7 +108,6 @@
   .cell{background:#FFF3E8;border-radius:14px;padding:10px 0;text-align:center;font-size:30px;font-weight:700;color:var(--orange-d);position:relative}
   .cell u{position:absolute;top:3px;left:6px;font-size:10px;color:#C7916A;text-decoration:none;font-weight:600}
   .chip.miss{background:#FFEFEC;border-color:#FFC7BE;color:#E8543F}
-  .chip .plus{font-size:13px;color:#E8543F;font-weight:700}
   .modal{position:fixed;inset:0;background:rgba(30,40,55,.45);display:none;align-items:flex-end;justify-content:center;z-index:80;padding:0}
   .modal-box{background:#fff;width:100%;max-width:640px;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));max-height:86vh;overflow:auto}
   .modal-box h3{margin:0 0 6px;font-size:17px}
@@ -152,6 +155,7 @@
       <div class="note" id="missTip"></div>
       <div class="row" style="margin-top:10px">
         <button class="btn sm" id="fillBtn" style="display:none">✏️ 补词组（没有词的字）</button>
+        <button class="btn sm ghost" id="dropMissBtn" style="display:none">🧹 移除没组词的字</button>
         <button class="btn sm ghost" id="clearBtn" style="display:none">🗑 清空重来</button>
       </div>
     </div>
@@ -708,6 +712,67 @@ const HINT_DATA = `
 恋|留恋的恋|依恋的恋
 舍|舍不得的舍|依依不舍的舍
 求|请求的求|要求的求
+表|手表的表|钟表的表
+宜|便宜的宜|适宜的宜
+实|果实的实|真实的实
+华|中华的华|华丽的华
+谷|稻谷的谷|山谷的谷
+金|金色的金|金子的金
+尽|用尽的尽|尽快的尽
+层|楼层的层|云层的层
+丰|丰收的丰|丰富的丰
+壮|强壮的壮|茁壮的壮
+浪|海浪的浪|风浪的浪
+作|作业的作|工作的作
+革|皮革的革|改革的革
+丽|美丽的丽|亮丽的丽
+加|加法的加|加入的加
+尤|尤其的尤
+其|其他的其|其中的其
+区|地区的区|山区的区
+巨|巨大的巨
+它|它们的它|小动物的它
+块|一块的块|石块的块
+甲|指甲的甲|盔甲的甲
+豆|豆子的豆|豆芽的豆
+纷|五彩缤纷的纷|大雪纷飞的纷
+皮|果皮的皮|皮毛的皮
+于|关于的于|等于的于
+首|首都的首|一首的首
+枝|树枝的枝|柳枝的枝
+枫|枫叶的枫|枫树的枫
+刘|姓刘的刘|刘海的刘
+胡|姓胡的胡|二胡的胡
+戏|游戏的戏|唱戏的戏
+棋|下棋的棋|棋子的棋
+钢|钢铁的钢|钢笔的钢
+观|观看的观|参观的观
+弹|弹琴的弹|子弹的弹
+琴|钢琴的琴|口琴的琴
+养|培养的养|营养的养
+伸|伸手的伸|伸展的伸
+歌|唱歌的歌|儿歌的歌
+院|医院的院|剧院的院
+除|除法的除|拆除的除
+您|您好的您|有心的您
+牵|牵手的牵|牵挂的牵
+图|图画的图|地图的图
+宁|安宁的宁|姓宁的宁
+室|教室的室|办公室的室
+样|样子的样|怎样的样
+切|亲切的切|急切的切
+响|响亮的响|声响的响
+矿|矿石的矿|煤矿的矿
+元|一元的元|公元的元
+钟|时钟的钟|闹钟的钟
+叹|叹气的叹|感叹的叹
+哈|笑哈哈的哈|哈密瓜的哈
+迟|迟到的迟|来迟的迟
+阅|阅读的阅|翻阅的阅
+次|次数的次|再次的次
+计|计算的计|合计的计
+尾|尾巴的尾|结尾的尾
+史|历史的史|史书的史
 `;
 
 const HINTS = {};
@@ -740,7 +805,7 @@ function renderChips(){
   const tip = document.getElementById('missTip');
   if(miss.length){
     tip.style.display = 'block';
-    tip.innerHTML = '⚠️ 有 <b>' + miss.length + '</b> 个字还没有组词（<b style="color:#E8543F">' + miss.join(' ') + '</b>），听写时只能干念字。点「补词组」填一个词就好，比如「善」填「善良」，老师就会念「善良的善」。';
+    tip.innerHTML = 'ⓘ 红底的 <b>' + miss.length + '</b> 个字（<b style="color:#E8543F">' + miss.join(' ') + '</b>）还没有组词，听写时只能干念字。点「补词组」填一个词就好，比如「善」填「善良」，老师就会念「善良的善」；不想要的字点 × 删掉。';
   }else{
     tip.style.display = chars.length ? 'none' : 'block';
     tip.innerHTML = '点一个字可以修改它的组词；点 × 删除。每个字都有组词啦 👍';
@@ -748,13 +813,14 @@ function renderChips(){
   const showBtns = chars.length ? 'block' : 'none';
   document.getElementById('fillBtn').style.display = showBtns;
   document.getElementById('clearBtn').style.display = showBtns;
+  document.getElementById('dropMissBtn').style.display = (chars.length && miss.length) ? 'block' : 'none';
   if(!chars.length){ chipsEl.innerHTML = '<span class="empty">还没有生字，先上传图片或手动输入～</span>'; return; }
   chipsEl.innerHTML = '';
   chars.forEach((c,i)=>{
     const s = document.createElement('span');
     s.className = 'chip' + (hintOf(c) ? '' : ' miss');
     s.title = hintOf(c) ? ('点击修改组词：' + hintOf(c).join('，')) : '还没有组词，点击补一个';
-    s.innerHTML = c + (hintOf(c) ? '' : '<span class="plus">＋</span>') + '<span class="x">×</span>';
+    s.innerHTML = c + '<span class="x">×</span>';
     s.onclick = (e)=>{
       if(e.target.classList.contains('x')){ chars.splice(i,1); renderChips(); return; }
       openFill([c]);
@@ -1249,6 +1315,15 @@ function finish(){
 document.getElementById('start').onclick = start;
 document.getElementById('test').onclick = (e)=>{ e.target.textContent='🔊 正在试听…'; speak(['大海的海，海边的海。']); setTimeout(()=>{e.target.textContent='🔊 先试听一下语音';},2500); };
 document.getElementById('fillBtn').onclick = ()=> openFill();
+document.getElementById('dropMissBtn').onclick = ()=>{
+  const miss = missing();
+  if(!miss.length) return;
+  if(confirm('把 ' + miss.length + ' 个还没有组词的字（' + miss.join(' ') + '）从清单里移除？')){
+    chars = chars.filter(c=>hintOf(c));
+    renderChips(); save('tx_chars', chars);
+    toast('已移除 ' + miss.length + ' 个字');
+  }
+};
 document.getElementById('clearBtn').onclick = ()=>{
   if(chars.length && confirm('清空整个生字清单？组词提示会保留。')){ chars = []; renderChips(); save('tx_chars', chars); toast('已清空'); }
 };
