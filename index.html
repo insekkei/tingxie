@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>生字听写小课堂</title>
+<style>
+  :root{
+    --bg1:#FFF9F2; --bg2:#F2F7FF;
+    --card:#ffffff; --ink:#2F3A4A; --sub:#7A879B;
+    --orange:#FF8A3D; --orange-d:#F2701C;
+    --blue:#4C9AFF; --green:#3FBF7F; --red:#FF6B6B;
+    --line:#E8EDF5; --shadow:0 8px 24px rgba(70,100,150,.10);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"PingFang SC","Helvetica Neue","Microsoft YaHei",system-ui,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    min-height:100vh; padding:16px 14px calc(28px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:640px;margin:0 auto}
+  h1{font-size:22px;margin:6px 0 2px;display:flex;align-items:center;gap:8px}
+  .sub{color:var(--sub);font-size:13px;margin-bottom:14px}
+  .card{background:var(--card);border-radius:20px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+  .card h2{font-size:16px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .badge{background:#FFF1E6;color:var(--orange-d);font-size:12px;padding:3px 9px;border-radius:99px;font-weight:600}
+  .btn{
+    border:0;border-radius:14px;padding:13px 16px;font-size:16px;font-weight:600;
+    background:var(--orange);color:#fff;cursor:pointer;width:100%;transition:.15s;
+  }
+  .btn:active{transform:scale(.98)}
+  .btn[disabled]{opacity:.45}
+  .btn.blue{background:var(--blue)}
+  .btn.ghost{background:#F1F5FB;color:var(--ink)}
+  .btn.green{background:var(--green)}
+  .btn.sm{padding:10px 12px;font-size:14px}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  label.field{display:block;font-size:13px;color:var(--sub);margin:10px 0 6px}
+  input[type=number],input[type=text],textarea{
+    width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;font-size:16px;
+    font-family:inherit;color:var(--ink);background:#FBFCFE;outline:none;
+  }
+  input:focus,textarea:focus{border-color:var(--blue)}
+  /* 上传区 */
+  .drop{
+    border:2px dashed #CFDCEF;border-radius:16px;padding:22px 14px;text-align:center;
+    background:#FAFCFF;cursor:pointer;
+  }
+  .drop .ico{font-size:34px}
+  .drop b{display:block;margin-top:6px;font-size:15px}
+  .drop span{font-size:12px;color:var(--sub)}
+  .prev{margin-top:12px;display:none}
+  .prev img{width:100%;border-radius:12px;border:1px solid var(--line);display:block}
+  .prog{height:8px;background:#EEF3FA;border-radius:99px;overflow:hidden;margin-top:10px}
+  .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--orange),#FFB56B);transition:.3s}
+  .note{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6}
+  /* 生字 chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;min-height:10px}
+  .chip{
+    background:#FFF3E8;border:1px solid #FFD9BC;color:var(--orange-d);border-radius:12px;
+    padding:7px 10px;font-size:20px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;
+  }
+  .chip .x{font-size:13px;color:#C7916A;font-weight:700}
+  .empty{color:var(--sub);font-size:13px}
+  .sw{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .sw:last-child{border-bottom:0}
+  .switch{width:48px;height:28px;border-radius:99px;background:#DDE5F0;position:relative;transition:.2s;flex:0 0 auto}
+  .switch.on{background:var(--green)}
+  .switch i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .switch.on i{left:23px}
+  /* 听写界面 */
+  #run{display:none}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:14px;color:var(--sub)}
+  .stage{
+    background:#fff;border-radius:24px;box-shadow:var(--shadow);padding:18px 16px 20px;text-align:center;
+  }
+  .box{
+    height:190px;border:3px dashed #D6E2F2;border-radius:20px;display:flex;align-items:center;justify-content:center;
+    background:repeating-linear-gradient(45deg,#FBFCFF,#FBFCFF 14px,#F6F9FE 14px,#F6F9FE 28px);
+    margin-bottom:14px;
+  }
+  .box .pen{font-size:54px;opacity:.55}
+  .box .ans{font-size:120px;line-height:1;font-weight:700;color:var(--orange-d)}
+  .hint{font-size:19px;line-height:1.7;color:#40506A;min-height:56px;font-weight:600}
+  .hint .dim{color:var(--sub);font-size:15px;font-weight:400}
+  .timer{display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0 4px}
+  .ring{width:64px;height:64px;transform:rotate(-90deg)}
+  .ring circle{fill:none;stroke-width:7;stroke-linecap:round}
+  .num{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+  .speaking{color:var(--green);font-size:13px;font-weight:600;height:18px}
+  .ctrls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .dots{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:14px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:#DDE5F0;display:block}
+  .dots i.done{background:var(--green)}
+  .dots i.cur{background:var(--orange);transform:scale(1.35)}
+  /* 完成 */
+  #done{display:none}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;margin-top:12px}
+  .cell{background:#FFF3E8;border-radius:14px;padding:10px 0;text-align:center;font-size:30px;font-weight:700;color:var(--orange-d);position:relative}
+  .cell u{position:absolute;top:3px;left:6px;font-size:10px;color:#C7916A;text-decoration:none;font-weight:600}
+  .chip.miss{background:#FFEFEC;border-color:#FFC7BE;color:#E8543F}
+  .chip .plus{font-size:13px;color:#E8543F;font-weight:700}
+  .modal{position:fixed;inset:0;background:rgba(30,40,55,.45);display:none;align-items:flex-end;justify-content:center;z-index:80;padding:0}
+  .modal-box{background:#fff;width:100%;max-width:640px;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));max-height:86vh;overflow:auto}
+  .modal-box h3{margin:0 0 6px;font-size:17px}
+  .frow{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .frow b{font-size:26px;width:38px;text-align:center;flex:0 0 auto;color:var(--orange-d)}
+  .frow input{flex:1;min-width:0}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:rgba(47,58,74,.94);color:#fff;
+    padding:11px 18px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:99;max-width:90%}
+  .toast.on{opacity:1;bottom:36px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>📝 生字听写小课堂</h1>
+  <div class="sub">上传生字表照片 → 自动识别 → 逐字报听写</div>
+
+  <!-- ========== 设置（准备） ========== -->
+  <div id="setup">
+    <div class="card">
+      <h2>① 生字表 <span class="badge">拍照 / 相册</span></h2>
+      <div class="drop" id="drop">
+        <div class="ico">📷</div>
+        <b>点击上传生字表图片</b>
+        <span>支持手机相册、拍照；会自动去格线、逐字识别</span>
+      </div>
+      <input type="file" id="file" accept="image/*" hidden>
+      <div class="prev" id="prev"><img id="prevImg" alt="生字表"></div>
+      <div class="prog" id="ocrProg" style="display:none"><i id="ocrBar"></i></div>
+      <div class="note" id="ocrMsg"></div>
+
+      <div style="margin-top:14px">
+        <label class="field">也可以直接粘贴 / 输入生字（不用图片）</label>
+        <textarea id="manual" rows="2" placeholder="例如：海 天 地 人 火 水 山"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="btn sm ghost" id="addManual">加入生字表</button>
+          <button class="btn sm ghost" id="demo">用示例生字</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>② 生字清单 <span class="badge" id="cnt">0 个</span></h2>
+      <div class="chips" id="chips"><span class="empty">还没有生字，先上传图片或手动输入～</span></div>
+      <div class="note" id="missTip"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn sm" id="fillBtn" style="display:none">✏️ 补词组（没有词的字）</button>
+        <button class="btn sm ghost" id="clearBtn" style="display:none">🗑 清空重来</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>③ 听写设置</h2>
+      <div class="sw"><span>每个字停留时间</span><span style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="dur" value="15" min="4" max="60" style="width:70px;text-align:center"> 秒</span></div>
+      <div class="sw"><span>随机顺序听写</span><div class="switch on" id="swShuffle"><i></i></div></div>
+      <div class="sw"><span>再念一遍</span><div class="switch on" id="swTwice"><i></i></div></div>
+      <div class="sw"><span>隔几秒再念第二遍</span><span style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="gap" value="5" min="2" max="12" style="width:70px;text-align:center"> 秒</span></div>
+      <div class="sw"><span>屏幕上显示组词提示</span><div class="switch on" id="swHint"><i></i></div></div>
+      <div class="sw"><span>报序号（第几个）</span><div class="switch" id="swIdx"><i></i></div></div>
+      <div class="sw"><span>语速</span><span style="display:flex;align-items:center;gap:8px">
+        <input type="range" id="rate" min="0.6" max="1.2" step="0.05" value="0.85" style="flex:1">
+        <b id="rateV" style="width:34px;text-align:right;font-size:13px">0.85</b></span></div>
+      <button class="btn" id="start" style="margin-top:14px">▶ 开始听写</button>
+      <button class="btn ghost sm" id="test" style="margin-top:10px">🔊 先试听一下语音</button>
+    </div>
+  </div>
+
+  <!-- ========== 听写中 ========== -->
+  <div id="run">
+    <div class="topbar">
+      <span id="pos">第 1 / 0 个</span>
+      <span id="quit" style="color:var(--red);font-weight:600;cursor:pointer">结束听写</span>
+    </div>
+    <div class="stage">
+      <div class="box" id="box"><span class="pen" id="pen">✍️</span></div>
+      <div class="hint" id="hint"></div>
+      <div class="speaking" id="spk"></div>
+      <div class="timer">
+        <svg class="ring" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="27" stroke="#EEF3FA" stroke-width="7"></circle>
+          <circle id="ring" cx="32" cy="32" r="27" stroke="#FF8A3D" stroke-dasharray="169.6" stroke-dashoffset="0"></circle>
+        </svg>
+        <span class="num" id="num">10</span>
+      </div>
+      <div class="ctrls">
+        <button class="btn sm ghost" id="repeat">🔊 再读一遍</button>
+        <button class="btn sm ghost" id="pause">⏸ 暂停</button>
+        <button class="btn sm ghost" id="next">⏭ 下一个</button>
+        <button class="btn sm blue" id="reveal">👀 看答案</button>
+        <button class="btn sm ghost" id="prevBtn">⏮ 上一个</button>
+        <button class="btn sm ghost" id="slow">🐢 慢一点</button>
+      </div>
+      <div class="dots" id="dots"></div>
+    </div>
+  </div>
+
+  <!-- ========== 完成 ========== -->
+  <div id="done">
+    <div class="card" style="text-align:center">
+      <div style="font-size:52px">🎉</div>
+      <h2 style="justify-content:center">听写完成！一共 <span id="dn">0</span> 个字</h2>
+      <p class="note" style="margin:0">请家长对照下面的字，帮孩子检查一下～</p>
+      <div class="grid" id="grid"></div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn green" id="again" style="flex:1">🔁 再听一次</button>
+      </div>
+      <button class="btn ghost" id="back" style="margin-top:10px">← 回到生字表</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 补词组面板 ========== -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h3 id="fillTitle">给生字补上组词</h3>
+    <p class="note" style="margin:0 0 12px">填一个词语就行，老师会自动念成「善良的善」。第二个词可以不填。</p>
+    <div id="fillList"></div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" id="fillCancel">取消</button>
+      <button class="btn green" id="fillSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 组词提示词典 =================
+   格式：字|提示1|提示2  —— 例如「海」→ 大海的海，海边的海 */
+const HINT_DATA = `
+海|大海的海|海边的海
+天|蓝天的天|天空的天
+地|大地的地|土地的地
+人|人们的人|工人的人
+火|火车的火|生火的火
+水|喝水的水|河水的水
+山|高山的山|山上的山
+田|田地的田|水田的田
+土|土地的土|黄土的土
+石|石头的石|石桥的石
+日|日出的日|生日的日
+月|月亮的月|月光的月
+星|星星的星|星光的星
+云|白云的云|云朵的云
+风|大风的风|风车的风
+雨|下雨的雨|雨伞的雨
+雪|下雪的雪|雪人的雪
+花|花朵的花|桃花的花
+草|小草的草|青草的草
+树|大树的树|树叶的树
+木|树木的木|木马的木
+林|树林的林|山林的林
+竹|竹子的竹|竹林的竹
+叶|树叶的叶|叶子的叶
+果|水果的果|果园的果
+禾|禾苗的禾|禾田的禾
+苗|禾苗的苗|树苗的苗
+米|大米的米|米饭的米
+鸟|小鸟的鸟|鸟窝的鸟
+鱼|金鱼的鱼|小鱼的鱼
+虫|虫子的虫|青虫的虫
+牛|牛奶的牛|小牛的牛
+羊|山羊的羊|羊毛的羊
+马|骑马的马|马路的马
+猫|小猫的猫|花猫的猫
+狗|小狗的狗|黄狗的狗
+兔|兔子的兔|白兔的兔
+鸡|小鸡的鸡|公鸡的鸡
+鸭|鸭子的鸭|小鸭的鸭
+鹅|白鹅的鹅|天鹅的鹅
+虎|老虎的虎|虎口的虎
+象|大象的象|象牙的象
+猴|猴子的猴|猕猴的猴
+熊|狗熊的熊|熊猫的熊
+口|开口的口|人口的口
+耳|耳朵的耳|木耳的耳
+目|目光的目|题目的目
+舌|舌头的舌|口舌的舌
+牙|牙齿的牙|牙刷的牙
+头|头发的头|点头的头
+手|小手的手|手心的手
+足|手足的足|足球的足
+身|身体的身|全身的身
+心|爱心的心|开心的心
+眼|眼睛的眼|双眼的眼
+鼻|鼻子的鼻|鼻尖的鼻
+眉|眉毛的眉|画眉的眉
+发|头发的发|白发的发
+爸|爸爸的爸|老爸的爸
+妈|妈妈的妈|爸妈的妈
+爷|爷爷的爷|大爷的爷
+奶|奶奶的奶|喝奶的奶
+哥|哥哥的哥|大哥的哥
+姐|姐姐的姐|大姐的姐
+弟|弟弟的弟|兄弟的弟
+家|回家的家|大家的家
+门|大门的门|开门的门
+窗|窗户的窗|开窗的窗
+床|小床的床|起床的床
+桌|桌子的桌|书桌的桌
+椅|椅子的椅|木椅的椅
+书|读书的书|书本的书
+笔|铅笔的笔|毛笔的笔
+纸|白纸的纸|纸张的纸
+刀|小刀的刀|刀口的刀
+尺|尺子的尺|直尺的尺
+包|书包的包|面包的包
+车|汽车的车|车站的车
+船|小船的船|轮船的船
+飞|飞机的飞|起飞的飞
+机|飞机的机|手机的机
+路|马路的路|走路的路
+桥|小桥的桥|石桥的桥
+灯|电灯的灯|台灯的灯
+房|房子的房|楼房的房
+楼|楼房的楼|高楼的楼
+城|城市的城|长城的城
+村|村子的村|乡村的村
+园|花园的园|公园的园
+白|雪白的白|明白的白
+黑|黑板的黑|黑色的黑
+红|红花的红|红色的红
+黄|黄豆的黄|黄色的黄
+绿|绿草的绿|绿色的绿
+蓝|蓝天的蓝|蓝色的蓝
+紫|紫色的紫|紫花的紫
+青|青草的青|青色的青
+大|大大的大|大象的大
+小|大小的小|小心的小
+多|很多的多|多少的多
+少|多少的少|少年的少
+上|上面的上|上学的上
+下|下面的下|下课的下
+左|左边的左|左手的左
+右|右边的右|右手的右
+前|前面的前|以前的前
+后|后面的后|前后的后
+中|中间的中|中国的中
+外|外面的外|窗外的外
+里|里面的里|家里的里
+东|东边的东|东方的东
+南|南边的南|南方的南
+西|西边的西|西方的西
+北|北边的北|北方的北
+边|旁边的边|两边的边
+早|早上的早|很早的早
+午|中午的午|上午的午
+晚|晚上的晚|傍晚的晚
+春|春天的春|春风的春
+夏|夏天的夏|夏季的夏
+秋|秋天的秋|秋风的秋
+冬|冬天的冬|冬季的冬
+年|新年的年|过年的年
+岁|几岁的岁|岁数的岁
+今|今天的今|今年的今
+明|明天的明|明亮的明
+时|时间的时|小时的时
+分|分钟的分|十分的分
+周|周末的周|一周的周
+一|一二三的一|第一的一
+二|一二三的二|第二的二
+三|一二三的三|第三的三
+四|四个的四|十四的四
+五|五个的五|十五的五
+六|六个的六|十六的六
+七|七个的七|十七的七
+八|八个的八|十八的八
+九|九个的九|十九的九
+十|十个的十|十分的十
+百|一百的百|百分的百
+千|一千的千|千万的千
+万|千万的万|一万的万
+走|走路的走|快走的走
+跑|跑步的跑|奔跑的跑
+跳|跳高的跳|跳绳的跳
+唱|唱歌的唱|合唱的唱
+说|说话的说|小说的说
+听|听话的听|好听的听
+看|看见的看|好看的看
+笑|大笑的笑|笑话的笑
+哭|大哭的哭|哭声的哭
+吃|吃饭的吃|好吃的吃
+喝|喝水的喝|喝汤的喝
+穿|穿衣的穿|穿鞋的穿
+洗|洗手的洗|洗脸的洗
+扫|打扫的扫|扫地的扫
+做|做事的做|做工的做
+坐|坐下的坐|请坐的坐
+站|站立的站|站好的站
+立|站立的立|立正的立
+打|打球的打|打人的打
+拍|拍球的拍|拍手的拍
+抱|抱住的抱|抱娃娃的抱
+拉|拉手的拉|拉开的拉
+爱|爱心的爱|可爱的爱
+好|好事的好|好人的好
+忙|帮忙的忙|很忙的忙
+快|快乐的快|快慢的快
+慢|快慢的慢|慢走的慢
+高|高兴的高|长高的高
+低|高低的低|低头的低
+长|长短的长|长高的长
+短|长短的短|短发的短
+远|远方的远|远处的远
+近|近处的近|最近的近
+圆|圆圈的圆|圆形的圆
+方|地方的方|四方的方
+尖|笔尖的尖|尖尖的尖
+平|平安的平|平地的平
+直|笔直的直|直线的直
+弯|弯曲的弯|转弯的弯
+学|学习的学|上学的学
+教|教室的教|请教的教
+读|读书的读|朗读的读
+写|写字的写|听写的写
+画|画画的画|图画的画
+数|数学的数|数一数的数
+玩|玩耍的玩|好玩的玩
+找|找人的找|找到的找
+问|问好的问|问题的问
+答|回答的答|答案的答
+送|送人的送|欢送的送
+拿|拿东西的拿|拿走的拿
+放|放学的放|放下的放
+开|开门的开|开心的开
+关|关门的关|开关的关
+和|和好的和|温和的和
+也|也是的也|也许的也
+很|很好的很|很多的很
+太|太阳的太|太好的太
+真|认真的真|真好的真
+是|不是的是|总是的是
+有|没有的有|有用的有
+在|现在的在|在家的在
+从|从前的从|从小的从
+向|方向的向|向前的向
+到|迟到的到|到家的到
+把|一把的把|火把的把
+被|被子的被|被动的被
+阳|太阳的阳|阳光的阳
+光|阳光的光|灯光的光
+气|天气的气|生气的气
+生|生日的生|学生的生
+活|生活的活|干活的活
+动|运动的动|动听的动
+朋|朋友的朋|亲朋好友的朋
+友|朋友的友|好友的友
+老|老师的老|老人的老
+师|老师的师|工程师的师
+同|同学的同|共同的同
+们|我们的们|人们的们
+个|一个的个|个人的个
+只|一只的只|只有的只
+朵|花朵的朵|一朵的朵
+片|一片的片|照片的片
+条|一条的条|面条的条
+群|一群的群|羊群的群
+善|善良的善|善意的善
+良|善良的良|优良的良
+美|美丽的美|美好的美
+丑|丑陋的丑|美丑的丑
+亮|明亮的亮|天亮的亮
+香|香味的香|花香的香
+甜|香甜的甜|甜甜的甜
+苦|辛苦的苦|苦瓜的苦
+酸|酸甜的酸|酸奶的酸
+辣|辣椒的辣|火辣的辣
+咸|咸菜的咸|咸味的咸
+饱|吃饱的饱|饱满的饱
+饿|饥饿的饿|挨饿的饿
+累|劳累的累|受累的累
+疼|牙疼的疼|疼痛的疼
+病|生病的病|看病的病
+医|医生的医|医院的医
+药|吃药的药|中药的药
+冰|冰块的冰|结冰的冰
+霜|白霜的霜|霜花的霜
+露|露水的露|雨露的露
+雷|打雷的雷|雷声的雷
+电|闪电的电|电话的电
+江|长江的江|江水的江
+河|河水的河|小河的河
+湖|湖水的湖|西湖的湖
+溪|小溪的溪|溪水的溪
+泉|泉水的泉|温泉的泉
+井|水井的井|井口的井
+沙|沙滩的沙|风沙的沙
+滩|沙滩的滩|海滩的滩
+岛|海岛的岛|岛屿的岛
+岸|河岸的岸|上岸的岸
+空|天空的空|空气的空
+升|上升的升|升旗的升
+降|下降的降|降落的降
+落|落下的落|降落的落
+起|起床的起|一起的起
+新|新年的新|崭新的新
+旧|旧书的旧|新旧的旧
+古|古人的古|古老的古
+轻|轻重的轻|轻轻的轻
+重|轻重的重|重要的重
+厚|厚薄的厚|厚厚的厚
+薄|厚薄的薄|薄片的薄
+粗|粗细的粗|粗心的粗
+细|粗细的细|细心的细
+硬|坚硬的硬|硬度的硬
+软|柔软的软|松软的软
+干|晒干的干|干活的干
+湿|潮湿的湿|湿气的湿
+暖|温暖的暖|暖和的暖
+冷|寒冷的冷|冷热的冷
+热|热闹的热|冷热的热
+凉|凉快的凉|凉水的凉
+安|安全的安|平安的安
+全|安全的全|完全的全
+危|危险的危|安危的危
+险|危险的险|冒险的险
+完|完成的完|完整的完
+整|完整的整|整齐的整
+破|打破的破|破了的破
+坏|破坏的坏|坏人的坏
+买|买卖的买|买东西的买
+卖|买卖的卖|卖东西的卖
+钱|金钱的钱|花钱的钱
+贵|宝贵的贵|昂贵的贵
+便|方便的便|便利的便
+给|给人的给|送给的给
+借|借书的借|借东西的借
+还|还书的还|还钱的还
+知|知道的知|知识的知
+道|知道的道|道路的道
+懂|懂事的懂|不懂的懂
+忘|忘记的忘|别忘的忘
+记|记住的记|忘记的记
+想|想念的想|思想的想
+要|重要的要|需要的要
+会|开会的会|学会的会
+能|能干的能|可能的能
+可|可爱的可|可以的可
+以|可以的以|以后的以
+每|每天的每|每个的每
+各|各种的各|各自的各
+些|一些的些|这些的些
+父|父亲的父|父母的父
+母|母亲的母|父母的母
+子|孩子的子|儿子的子
+女|女儿的女|女孩的女
+孙|孙子的孙|爷孙的孙
+娃|娃娃的娃|女娃的娃
+孩|孩子的孩|小孩的孩
+童|儿童的童|童话的童
+衣|衣服的衣|穿衣的衣
+裤|裤子的裤|长裤的裤
+鞋|皮鞋的鞋|布鞋的鞋
+袜|袜子的袜|短袜的袜
+帽|帽子的帽|草帽的帽
+碗|饭碗的碗|一碗的碗
+筷|筷子的筷|碗筷的筷
+勺|勺子的勺|汤勺的勺
+杯|水杯的杯|茶杯的杯
+饭|吃饭的饭|米饭的饭
+菜|饭菜的菜|白菜的菜
+汤|喝汤的汤|菜汤的汤
+蛋|鸡蛋的蛋|蛋糕的蛋
+肉|牛肉的肉|吃肉的肉
+糖|糖果的糖|吃糖的糖
+饼|饼干的饼|月饼的饼
+勇|勇敢的勇|勇士的勇
+敢|勇敢的敢|敢说的敢
+勤|勤劳的勤|勤快的勤
+劳|勤劳的劳|劳动的劳
+懒|懒惰的懒|偷懒的懒
+聪|聪明的聪|聪慧的聪
+认|认真的认|认识的认
+识|认识的识|知识的识
+讲|讲话的讲|讲课的讲
+话|说话的话|讲话的话
+语|语文的语|话语的语
+文|语文的文|作文的文
+字|写字的字|汉字的字
+词|词语的词|组词的词
+句|句子的句|一句话的句
+声|声音的声|大声的声
+音|声音的音|口音的音
+颜|颜色的颜|笑颜的颜
+色|颜色的色|红色的色
+过|过去的过|过年的过
+回|回家的回|回头的回
+进|进来的进|前进的进
+出|出门的出|出去的出
+来|来去的来|过来的来
+去|回去的去|来去的去
+睡|睡觉的睡|午睡的睡
+醒|睡醒的醒|醒来的醒
+梦|做梦的梦|梦里的梦
+爬|爬山的爬|爬行的爬
+游|游泳的游|游戏的游
+带|带路的带|鞋带的带
+背|背书的背|背包的背
+名|名字的名|有名的名
+姓|姓名的姓|百家姓的姓
+校|学校的校|校长的校
+班|班级的班|上班的班
+级|班级的级|年级的级
+课|上课的课|功课的课
+考|考试的考|思考的考
+幸|幸福的幸|幸运的幸
+福|幸福的福|福气的福
+如|如果的如|不如的如
+因|因为的因|原因的因
+为|因为的为|成为的为
+所|所以的所|场所的所
+但|但是的但|不但的但
+而|而且的而|然而的而
+且|而且的且|并且的且
+或|或者的或|或是的或
+者|作者的者|或者的者
+已|已经的已|早已的已
+经|已经的经|经常的经
+常|经常的常|平常的常
+就|就是的就|成就的就
+才|刚才的才|天才的才
+更|更加的更|更好的更
+最|最后的最|最好的最
+这|这里的这|这个的这
+那|那里的那|那个的那
+哪|哪里的哪|哪个的哪
+什|什么的什|为什么的什
+么|什么的么|怎么的么
+怎|怎么的怎|怎样的怎
+谁|是谁的谁|找谁的谁
+几|几个的几|几岁的几
+两|两个的两|两只的两
+半|一半的半|半天的半
+再|再见的再|再来的再
+又|又是的又|又大又圆的又
+净|干净的净|洁净的净
+脏|脏乱的脏|弄脏的脏
+齐|整齐的齐|对齐的齐
+乱|杂乱的乱|乱七八糟的乱
+静|安静的静|平静的静
+吵|吵闹的吵|吵架的吵
+闹|热闹的闹|吵闹的闹
+护|保护的护|爱护的护
+保|保护的保|保安的保
+助|帮助的助|助人的助
+帮|帮助的帮|帮忙的帮
+望|希望的望|看望的望
+希|希望的希|希罕的希
+努|努力的努|努把力的努
+力|努力的力|力气的力
+诗|古诗的诗|诗歌的诗
+趁|趁早的趁|趁机的趁
+碧|碧绿的碧|碧玉的碧
+妆|化妆的妆|梳妆的妆
+丝|雨丝的丝|铁丝的丝
+剪|剪刀的剪|剪窗花的剪
+冲|冲洗的冲|冲出去的冲
+寻|寻找的寻|搜寻的寻
+姑|姑娘的姑|姑妈的姑
+娘|姑娘的娘|新娘的娘
+仔|仔细的仔|牛仔的仔
+吐|吐字的吐|吐出来的吐
+柳|柳树的柳|柳条的柳
+荡|飘荡的荡|荡秋千的荡
+桃|桃子的桃|桃花的桃
+杏|杏花的杏|杏子的杏
+鲜|鲜花的鲜|新鲜的鲜
+邮|邮局的邮|邮票的邮
+递|快递的递|传递的递
+员|队员的员|员工的员
+原|原来的原|原因的原
+叔|叔叔的叔|大叔的叔
+局|邮局的局|布局的局
+堆|堆雪人的堆|土堆的堆
+礼|礼物的礼|敬礼的礼
+邓|姓邓的邓|邓爷爷的邓
+植|植物的植|种植的植
+格|格子的格|方格的格
+引|引路的引|引人注目的引
+注|注意的注|注水的注
+满|满意的满|装满的满
+休|午休的休|休息的休
+息|休息的息|消息的息
+锋|先锋的锋|雷锋的锋
+昨|昨天的昨|昨晚的昨
+冒|感冒的冒|冒险的冒
+留|留下的留|保留的留
+洒|洒水的洒|飘洒的洒
+温|温度的温|温柔的温
+味|味道的味|气味的味
+具|文具的具|工具的具
+甘|甘甜的甘|甘心的甘
+匹|一匹的匹|布匹的匹
+妹|妹妹的妹|姐妹的妹
+波|水波的波|波浪的波
+纹|花纹的纹|波纹的纹
+像|好像的像|画像的像
+景|风景的景|景色的景
+恋|留恋的恋|依恋的恋
+舍|舍不得的舍|依依不舍的舍
+求|请求的求|要求的求
+`;
+
+const HINTS = {};
+HINT_DATA.trim().split(/\n+/).forEach(line=>{
+  const p = line.split('|').map(s=>s.trim()).filter(Boolean);
+  if(p.length>=2 && p[0].length===1){
+    if(!HINTS[p[0]]) HINTS[p[0]] = [p[1], p[2] || p[1]];
+  }
+});
+
+/* ================= 状态 ================= */
+let chars = [];                 // 生字清单（保持输入顺序）
+const custom = load('tx_custom_hints', {});   // 自定义提示 {字:[a,b]}
+const SET_KEY = 'tx_settings_v3';   // v3：默认 15 秒、不报序号、隔 5 秒重复
+const settings = Object.assign({dur:15, gap:5, shuffle:true, twice:true, showHint:true, sayIdx:false, rate:0.85}, load(SET_KEY, {}));
+
+function load(k, d){ try{ return JSON.parse(localStorage.getItem(k)) || d; }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),2200); }
+
+/* ================= 生字表编辑 ================= */
+const chipsEl = document.getElementById('chips');
+function hintOf(c){ return custom[c] || HINTS[c] || null; }
+function wordOf(c, hint){ return String(hint||'').replace(new RegExp('的' + c + '$'), ''); }  // 「善良的善」→「善良」
+function missing(){ return chars.filter(c=>!hintOf(c)); }
+
+function renderChips(){
+  document.getElementById('cnt').textContent = chars.length + ' 个';
+  const miss = missing();
+  const tip = document.getElementById('missTip');
+  if(miss.length){
+    tip.style.display = 'block';
+    tip.innerHTML = '⚠️ 有 <b>' + miss.length + '</b> 个字还没有组词（<b style="color:#E8543F">' + miss.join(' ') + '</b>），听写时只能干念字。点「补词组」填一个词就好，比如「善」填「善良」，老师就会念「善良的善」。';
+  }else{
+    tip.style.display = chars.length ? 'none' : 'block';
+    tip.innerHTML = '点一个字可以修改它的组词；点 × 删除。每个字都有组词啦 👍';
+  }
+  const showBtns = chars.length ? 'block' : 'none';
+  document.getElementById('fillBtn').style.display = showBtns;
+  document.getElementById('clearBtn').style.display = showBtns;
+  if(!chars.length){ chipsEl.innerHTML = '<span class="empty">还没有生字，先上传图片或手动输入～</span>'; return; }
+  chipsEl.innerHTML = '';
+  chars.forEach((c,i)=>{
+    const s = document.createElement('span');
+    s.className = 'chip' + (hintOf(c) ? '' : ' miss');
+    s.title = hintOf(c) ? ('点击修改组词：' + hintOf(c).join('，')) : '还没有组词，点击补一个';
+    s.innerHTML = c + (hintOf(c) ? '' : '<span class="plus">＋</span>') + '<span class="x">×</span>';
+    s.onclick = (e)=>{
+      if(e.target.classList.contains('x')){ chars.splice(i,1); renderChips(); return; }
+      openFill([c]);
+    };
+    chipsEl.appendChild(s);
+  });
+}
+
+/* 补词组面板：填「善良」→ 自动念成「善良的善」 */
+function openFill(only){
+  const list = (only && only.length) ? only.slice() : (missing().length ? missing() : chars.slice());
+  if(!list.length){ toast('每个字都有组词啦'); return; }
+  const box = document.getElementById('fillList');
+  box.innerHTML = '';
+  list.forEach(c=>{
+    const h = hintOf(c);
+    const row = document.createElement('div');
+    row.className = 'frow';
+    row.innerHTML = '<b>'+c+'</b>'
+      + '<input type="text" data-a="'+c+'" placeholder="词语，如：善良" value="'+(h?wordOf(c,h[0]):'')+'">'
+      + '<input type="text" data-b="'+c+'" placeholder="第二个词（可不填）" value="'+((h&&h[1])?wordOf(c,h[1]):'')+'">';
+    box.appendChild(row);
+  });
+  document.getElementById('fillTitle').textContent = (only&&only.length) ? ('「'+only[0]+'」的组词') : ('给 '+list.length+' 个字补上组词');
+  document.getElementById('modal').style.display = 'flex';
+  const first = box.querySelector('input'); if(first) setTimeout(()=>first.focus(), 120);
+}
+function closeFill(){ document.getElementById('modal').style.display = 'none'; renderChips(); }
+function saveFill(){
+  const box = document.getElementById('fillList');
+  let n = 0;
+  box.querySelectorAll('input[data-a]').forEach(inp=>{
+    const c = inp.dataset.a;
+    const w1 = inp.value.trim();
+    const w2 = (box.querySelector('input[data-b="'+c+'"]')||{}).value || '';
+    if(w1){
+      custom[c] = [w1 + '的' + c, (w2.trim() ? w2.trim() + '的' + c : '')];
+      n++;
+    }
+  });
+  save('tx_custom_hints', custom);
+  closeFill();
+  toast('已保存 ' + n + ' 个字的组词');
+}
+function addChars(str){
+  const found = (str.match(/[\u4e00-\u9fff]/g) || []);
+  if(!found.length){ toast('没有识别到汉字'); return 0; }
+  let n=0; found.forEach(c=>{ if(!chars.includes(c)){ chars.push(c); n++; } });
+  renderChips(); return n;
+}
+
+/* ================= 上传 & OCR ================= */
+const drop = document.getElementById('drop'), fileInput = document.getElementById('file');
+drop.onclick = ()=> fileInput.click();
+fileInput.onchange = e=>{ const f=e.target.files[0]; if(f) handleImage(f); };
+
+function handleImage(file){
+  const url = URL.createObjectURL(file);
+  const prev = document.getElementById('prev'); prev.style.display='block';
+  document.getElementById('prevImg').src = url;
+  runOCR(file);
+}
+
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector('script[src="'+src+'"]')) return res();
+    const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('load fail')); document.head.appendChild(s);
+  });
+}
+
+function dedupeCJK(arr){
+  const s = new Set(), out = [];
+  arr.forEach(c=>{ if(!s.has(c)){ s.add(c); out.push(c); } });
+  return out;
+}
+
+/* 把整页识别出的「词块」整理成一个个单字位置：
+   ① 一次认出多个字的长条 → 按字数横向均分
+   ② 太矮的（拼音、噪点）丢掉
+   ③ 同一行里挨得近的碎片（如「休」被拆成两半）合并成一个字 */
+function buildBoxes(data, w, h){
+  const words = (data && data.words) ? data.words : [];
+  let list = [];
+  words.forEach(o=>{
+    if(!o.bbox) return;
+    const t = (o.text||'').replace(/[^\u4e00-\u9fff]/g, '');
+    if(!t) return;
+    const b = o.bbox, bw = b.x1-b.x0, bh = b.y1-b.y0;
+    if(bw < 5 || bh < 5) return;
+    if(t.length > 1 && bw > bh*1.25){
+      const step = bw/t.length;
+      for(let i=0;i<t.length;i++){
+        list.push({ x0: b.x0+i*step, y0: b.y0, x1: b.x0+(i+1)*step, y1: b.y1 });
+      }
+    }else{
+      list.push({ x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 });
+    }
+  });
+  if(!list.length) return [];
+
+  /* 用「第 90 百分位高度」当标准字高，滤掉拼音行和噪点 */
+  const hs = list.map(b=>b.y1-b.y0).sort((a,b)=>a-b);
+  const maxH = hs[Math.min(hs.length-1, Math.floor(hs.length*0.9))] || 10;
+  let arr = list.filter(b=> (b.y1-b.y0) >= maxH*0.55 );
+  if(arr.length < 3) arr = list;
+  const hs2 = arr.map(b=>b.y1-b.y0).sort((a,b)=>a-b);
+  const medH = hs2[Math.floor(hs2.length/2)] || maxH;
+
+  /* 分行 */
+  const rows = [];
+  arr.sort((a,b)=>a.y0-b.y0);
+  arr.forEach(b=>{
+    const cy = (b.y0+b.y1)/2;
+    let r = rows.find(r=> Math.abs((r.y0+r.y1)/2 - cy) <= medH*0.75 );
+    if(!r){ r = { y0:b.y0, y1:b.y1, items:[b] }; rows.push(r); }
+    else{ r.items.push(b); r.y0=Math.min(r.y0,b.y0); r.y1=Math.max(r.y1,b.y1); }
+  });
+
+  /* 行内合并碎片 */
+  const out = [];
+  rows.sort((a,b)=>a.y0-b.y0);
+  rows.forEach(r=>{
+    r.items.sort((a,b)=>a.x0-b.x0);
+    let cur = null;
+    r.items.forEach(b=>{
+      if(!cur){ cur = Object.assign({}, b); return; }
+      const gap = b.x0 - cur.x1;
+      const mergedW = b.x1 - cur.x0;
+      if(gap < medH*0.5 && mergedW < medH*1.9){
+        cur.x1 = Math.max(cur.x1, b.x1);
+        cur.y0 = Math.min(cur.y0, b.y0); cur.y1 = Math.max(cur.y1, b.y1);
+      }else{ out.push(cur); cur = Object.assign({}, b); }
+    });
+    if(cur) out.push(cur);
+  });
+  return out.filter(b=> (b.x1-b.x0) >= medH*0.32 && (b.y1-b.y0) >= medH*0.5 )
+            .map(b=>({ x0:Math.max(0,Math.round(b.x0)), y0:Math.max(0,Math.round(b.y0)),
+                       x1:Math.min(w,Math.round(b.x1)), y1:Math.min(h,Math.round(b.y1)) }));
+}
+
+/* 把某个字块裁出来，放大到统一大小，白底 */
+function cropCanvas(src, b, pad, targetH){
+  const w = src.width, h = src.height;
+  const bw = b.x1-b.x0, bh = b.y1-b.y0;
+  const px = Math.round(Math.max(bw,bh)*pad);
+  const x0 = Math.max(0, b.x0-px), y0 = Math.max(0, b.y0-px);
+  const x1 = Math.min(w, b.x1+px), y1 = Math.min(h, b.y1+px);
+  const cw = Math.max(1, x1-x0), ch = Math.max(1, y1-y0);
+  const s = Math.max(1, Math.min(6, targetH/ch));
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(cw*s); cv.height = Math.round(ch*s);
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, x0,y0,cw,ch, 0,0,cv.width,cv.height);
+  return cv;
+}
+
+async function runOCR(file){
+  const prog = document.getElementById('ocrProg'), bar = document.getElementById('ocrBar'), msg = document.getElementById('ocrMsg');
+  prog.style.display='block'; bar.style.width='2%';
+  msg.innerHTML = '⏳ 正在加载中文识别引擎（首次约 10–30 秒，之后会快很多）…';
+  try{
+    await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+  }catch(e){
+    msg.innerHTML = '❌ 识别引擎加载失败（可能是网络原因）。请直接在下方「粘贴 / 输入生字」里把生字打进去，一样可以用。';
+    prog.style.display='none'; return;
+  }
+
+  let phase = 'load';
+  const logger = m=>{
+    if(phase !== 'load') return;
+    if(m.progress !== undefined) bar.style.width = Math.round(2 + m.progress*38) + '%';
+    msg.innerHTML = '⏳ 正在准备识别引擎… 请不要关闭页面';
+  };
+
+  /* 创建识别 worker（langPath 三级回退） */
+  const paths = [{}, {langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim@1.0.0/4.0.0_best_int'}, {langPath:'https://unpkg.com/@tesseract.js-data/chi_sim/4.0.0_best_int'}];
+  let worker = null;
+  for(const o of paths){
+    try{ worker = await Tesseract.createWorker('chi_sim', 1, Object.assign({logger}, o)); break; }
+    catch(err){ console.warn('createWorker retry', err); }
+  }
+  if(!worker){
+    msg.innerHTML = '❌ 识别引擎启动失败，请检查网络，或直接在下方输入框里手动填写生字。';
+    prog.style.display='none'; return;
+  }
+  phase = 'work';
+  const setProg = (p, txt)=>{ bar.style.width = p + '%'; msg.innerHTML = '⏳ ' + txt; };
+
+  /* 预处理：放大 + 灰度 + Otsu 二值化 + 去田字格线 + 去噪点 */
+  let canvas = file;
+  try{ canvas = await preprocess(file); }catch(e){ console.warn('preprocess skip', e); }
+
+  let best = null;
+
+  /* ① 单字模式（最准）：先整页找字块位置 → 逐个裁出来单独识别 → 按置信度过滤 */
+  try{
+    setProg(42, '正在找生字的位置…');
+    await worker.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' });
+    const d1 = await worker.recognize(canvas);
+    const boxes = buildBoxes(d1, canvas.width, canvas.height);
+    console.log('单字模式：找到字块', boxes.length, '个');
+    if(boxes.length >= 3 && boxes.length <= 150){
+      await worker.setParameters({ tessedit_pageseg_mode: '10' });   // 单字模式
+      const found = [], low = [];
+      for(let i=0;i<boxes.length;i++){
+        const r = await worker.recognize(cropCanvas(canvas, boxes[i], 0.14, 76));
+        const ch = ((r.data.text||'').match(/[\u4e00-\u9fff]/g) || []);
+        const cf = r.data.confidence || 0;
+        if(ch.length){ found.push(ch[0]); if(cf < 55) low.push(ch[0]); }
+        setProg(45 + Math.round(50*(i+1)/boxes.length), '正在逐个认字…（' + (i+1) + '/' + boxes.length + '）');
+      }
+      if(found.length >= 3) best = { uniq: dedupeCJK(found), label: '单字模式', low: dedupeCJK(low) };
+    }
+  }catch(err){ console.warn('cell mode fail', err); }
+
+  /* ② 兜底：整页两种模式各跑一遍，取认出不重复汉字较多的一版 */
+  if(!best){
+    setProg(50, '正在整页认字…');
+    for(const [psm, label] of [['6','整页模式'], ['11','散字模式']]){
+      try{
+        await worker.setParameters({ tessedit_pageseg_mode: psm, preserve_interword_spaces: '1' });
+        const { data } = await worker.recognize(canvas);
+        const uniq = dedupeCJK((data.text||'').match(/[\u4e00-\u9fff]/g) || []);
+        console.log('PSM', psm, label, '认出', uniq.length, '字:', uniq.join(''));
+        if(!best || uniq.length > best.uniq.length) best = { uniq, label, low: [] };
+      }catch(err){ console.warn('pass fail', psm, err); }
+    }
+  }
+  try{ await worker.terminate(); }catch(e){}
+
+  bar.style.width='100%';
+  if(best && best.uniq.length){
+    const n = addChars(best.uniq.join(''));
+    let extra = '';
+    if(best.low && best.low.length){
+      extra = '<br>⚠️ 这 <b style="color:#E8543F">' + best.low.join(' ') + '</b> 几个把握不大，请重点核对。';
+    }
+    msg.innerHTML = '✅ 识别出 <b>' + n + '</b> 个生字（' + best.label + '，按生字表顺序），已加入清单。'
+      + '<b style="color:#E8543F">请务必逐个核对！</b>认错/多认的点一下改、点 × 删。'
+      + extra
+      + '<br>楷体字仍可能认错，最稳的办法：把生字表照片发到 WorkBuddy 对话框里，老师帮你转成文字，复制粘贴回来。';
+  }else{
+    msg.innerHTML = '⚠️ 没认出字来。可以换一张更清楚的照片（正对着拍、光线足、字占画面大），或把照片发到 WorkBuddy 对话框里让老师帮忙转文字，再粘贴回来。';
+  }
+  setTimeout(()=>{ prog.style.display='none'; }, 600);
+}
+
+/* 图片预处理：放大 → 灰度 → Otsu 二值化（去彩色底） → 去田字格线 → 去孤立噪点 */
+function preprocess(file){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const w = img.naturalWidth, h = img.naturalHeight, mx = Math.max(w,h);
+      const scale = mx < 1400 ? Math.min(3, 1400/mx) : (mx > 2400 ? 2400/mx : 1);
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(w*scale); cv.height = Math.round(h*scale);
+      const ctx = cv.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      try{ binarize(ctx, cv.width, cv.height); }
+      catch(e){ console.warn('binarize skip', e); }
+      resolve(cv);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/* 灰度 + Otsu 二值化，返回 ink 掩码（1 = 笔画） */
+function binarize(ctx, w, h){
+  const d = ctx.getImageData(0, 0, w, h), n = w*h;
+  const gray = new Uint8Array(n);
+  for(let i=0;i<n;i++){ gray[i] = (d.data[i*4]*0.299 + d.data[i*4+1]*0.587 + d.data[i*4+2]*0.114) | 0; }
+  const th = otsu(gray);
+  const bin = new Uint8Array(n);
+  for(let i=0;i<n;i++){ bin[i] = gray[i] > th ? 0 : 1; }
+  removeGridLines(bin, w, h);
+  despeckle(bin, w, h);
+  for(let i=0;i<n;i++){ const v = bin[i] ? 0 : 255; d.data[i*4]=d.data[i*4+1]=d.data[i*4+2]=v; d.data[i*4+3]=255; }
+  ctx.putImageData(d, 0, 0);
+}
+
+/* 去掉田字格线：只删「几乎贯穿整幅 + 有很长连续段」的行/列，
+   这样能擦掉格子线，又不会误删字的横竖笔画（字的笔画都是短段） */
+function removeGridLines(bin, w, h){
+  const minRun = w*0.15, need = w*0.55;
+  for(let y=0;y<h;y++){
+    let cnt=0, run=0, maxRun=0;
+    const base = y*w;
+    for(let x=0;x<w;x++){
+      if(bin[base+x]){ cnt++; run++; if(run>maxRun) maxRun=run; } else run=0;
+    }
+    if(cnt > need && maxRun > minRun){ for(let x=0;x<w;x++) bin[base+x]=0; }
+  }
+  const minRun2 = h*0.15, need2 = h*0.55;
+  for(let x=0;x<w;x++){
+    let cnt=0, run=0, maxRun=0;
+    for(let y=0;y<h;y++){
+      if(bin[y*w+x]){ cnt++; run++; if(run>maxRun) maxRun=run; } else run=0;
+    }
+    if(cnt > need2 && maxRun > minRun2){ for(let y=0;y<h;y++) bin[y*w+x]=0; }
+  }
+}
+
+/* 去孤立噪点：周围（8 邻域）黑点少于 2 个的，当成噪点擦掉 */
+function despeckle(bin, w, h){
+  for(let pass=0; pass<2; pass++){
+    const cp = bin.slice();
+    let changed = false;
+    for(let y=1;y<h-1;y++){
+      const b = y*w;
+      for(let x=1;x<w-1;x++){
+        const i = b+x;
+        if(!cp[i]) continue;
+        const c = cp[i-1]+cp[i+1]+cp[i-w]+cp[i+w]+cp[i-w-1]+cp[i-w+1]+cp[i+w-1]+cp[i+w+1];
+        if(c <= 1){ bin[i]=0; changed = true; }
+      }
+    }
+    if(!changed) break;
+  }
+}
+function otsu(g){
+  const hist = new Array(256).fill(0);
+  for(let i=0;i<g.length;i++) hist[g[i]]++;
+  const total = g.length;
+  let sum = 0; for(let i=0;i<256;i++) sum += i*hist[i];
+  let sumB = 0, wB = 0, best = 0, th = 127;
+  for(let t=0;t<256;t++){
+    wB += hist[t]; if(!wB) continue;
+    const wF = total - wB; if(!wF) break;
+    sumB += t*hist[t];
+    const mB = sumB/wB, mF = (sum-sumB)/wF;
+    const between = wB*wF*(mB-mF)*(mB-mF);
+    if(between > best){ best = between; th = t; }
+  }
+  return th;
+}
+
+document.getElementById('addManual').onclick = ()=>{
+  const v = document.getElementById('manual').value;
+  const n = addChars(v); if(n>0){ document.getElementById('manual').value=''; toast('已加入 '+n+' 个生字'); }
+};
+document.getElementById('demo').onclick = ()=>{ addChars('海天山水火木鸟鱼虫云风雨花'); toast('示例生字已加入'); };
+
+/* ================= 设置项 ================= */
+function bindSwitch(id, key, onChange){
+  const el = document.getElementById(id);
+  el.classList.toggle('on', !!settings[key]);
+  el.onclick = ()=>{ settings[key] = !settings[key]; el.classList.toggle('on', settings[key]); save(SET_KEY, settings); onChange&&onChange(); };
+}
+bindSwitch('swShuffle','shuffle'); bindSwitch('swTwice','twice');
+bindSwitch('swHint','showHint'); bindSwitch('swIdx','sayIdx');
+const durEl = document.getElementById('dur'); durEl.value = settings.dur;
+durEl.onchange = ()=>{ settings.dur = Math.max(4, Math.min(60, +durEl.value||15)); durEl.value=settings.dur; save(SET_KEY,settings); };
+const gapEl = document.getElementById('gap'); gapEl.value = settings.gap;
+gapEl.onchange = ()=>{ settings.gap = Math.max(2, Math.min(12, +gapEl.value||5)); gapEl.value=settings.gap; save(SET_KEY,settings); };
+const rateEl = document.getElementById('rate'); rateEl.value = settings.rate; document.getElementById('rateV').textContent = settings.rate;
+rateEl.oninput = ()=>{ settings.rate = +rateEl.value; document.getElementById('rateV').textContent = settings.rate; save(SET_KEY,settings); };
+
+/* ================= 语音 ================= */
+let voice = null;
+function pickVoice(){
+  const vs = speechSynthesis.getVoices() || [];
+  voice = vs.find(v=>/zh[-_]CN/i.test(v.lang) && /Ting|Tingting|Mei|Yu|Female|女/i.test(v.name))
+       || vs.find(v=>/zh[-_]CN/i.test(v.lang))
+       || vs.find(v=>/^zh/i.test(v.lang)) || null;
+}
+if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+
+/* 依次朗读多句话。要点：
+   1) cancel() 之后必须等一拍再 speak，否则 Safari/Chrome 会把新语音吞掉
+   2) 用 onend 串起来，不走「同时排队两个 utterance」的老办法
+   3) 全程不使用 WebAudio —— iPhone 上 AudioContext 会打断语音合成，导致只念出开头几个字 */
+let speechSeq = 0, speakTimer = null;
+function speak(texts, rate){
+  if(!('speechSynthesis' in window)) return;
+  if(typeof texts === 'string') texts = [texts];
+  const mySeq = ++speechSeq;
+  clearTimeout(speakTimer);
+  try{ speechSynthesis.cancel(); }catch(e){}
+  try{ speechSynthesis.resume(); }catch(e){}
+  const go = (i)=>{
+    if(mySeq !== speechSeq) return;               // 已经被新的一次朗读取代
+    if(i >= texts.length){ document.getElementById('spk').textContent = ''; return; }
+    const u = new SpeechSynthesisUtterance(texts[i]);
+    u.lang = 'zh-CN'; u.rate = rate ?? settings.rate; u.pitch = 1.05; u.volume = 1;
+    if(voice) u.voice = voice;
+    if(i === 0) u.onstart = ()=>{ document.getElementById('spk').textContent = '🔊 老师在念，仔细听～'; };
+    u.onend = ()=> go(i+1);
+    u.onerror = ()=> go(i+1);
+    try{ speechSynthesis.speak(u); }catch(e){ go(i+1); }
+  };
+  speakTimer = setTimeout(()=> go(0), 80);
+}
+function ding(){ /* 已移除提示音：iOS 上会打断朗读 */ }
+
+/* ================= 听写流程 ================= */
+let order = [], idx = 0, remain = 0, last = 0, raf = null, paused = false, running = false, revealed = false;
+let curText = '', repeated = false;
+function gapMs(){ return Math.max(2000, Math.min((+settings.gap||5)*1000, settings.dur*1000 - 2000)); }
+
+function scriptFor(ch, withIdx){
+  const hs = (hintOf(ch) || []).filter(Boolean);
+  let s = '';
+  if(withIdx) s += '第' + (idx+1) + '个，';
+  if(hs.length) s += hs.join('，') + '。';   // 例如：善良的善。/ 大海的海，海边的海。
+  else s += ch + '，' + ch + '。';           // 实在没有组词时，只念两遍字
+  return s;
+}
+
+function start(){
+  if(!chars.length){ toast('先加几个生字吧～'); return; }
+  order = chars.slice();
+  if(settings.shuffle){ for(let i=order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; } }
+  idx = 0; running = true;
+  document.getElementById('setup').style.display='none';
+  document.getElementById('done').style.display='none';
+  document.getElementById('run').style.display='block';
+  if('speechSynthesis' in window) speechSynthesis.resume();
+  try{ navigator.wakeLock && navigator.wakeLock.request('screen'); }catch(e){}
+  renderDots(); show(true);
+}
+
+function show(isNew){
+  if(idx>=order.length){ finish(); return; }
+  const ch = order[idx];
+  revealed = false;
+  document.getElementById('pos').textContent = '第 ' + (idx+1) + ' / ' + order.length + ' 个';
+  document.getElementById('box').innerHTML = '<span class="pen">✍️</span>';
+  const hs = (hintOf(ch) || []).filter(Boolean);
+  const hintEl = document.getElementById('hint');
+  if(settings.showHint && hs.length) hintEl.innerHTML = hs.join('<br>') + '<br><span class="dim">把它写在本子上</span>';
+  else hintEl.innerHTML = '<span class="dim">仔细听老师念，写在本子上</span>';
+  document.getElementById('pause').textContent = '⏸ 暂停';
+  paused = false;
+  updateDots();
+  curText = scriptFor(ch, settings.sayIdx);
+  repeated = false;                       // 第一遍马上念
+  speak([curText]);
+  remain = settings.dur * 1000; last = 0;
+  if(raf) cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(tick);
+}
+
+function tick(ts){
+  if(!running) return;
+  if(!last) last = ts;
+  if(!paused){
+    remain -= (ts - last);
+    // 隔 N 秒再念一遍（只念一次，不会一直重复）
+    if(!repeated && settings.twice){
+      const elapsed = settings.dur*1000 - remain;
+      if(elapsed >= gapMs()){ repeated = true; speak([curText]); }
+    }
+    if(remain <= 0){
+      remain = 0; paint();
+      idx++; if(idx>=order.length){ setTimeout(finish, 400); return; }
+      setTimeout(()=>{ if(running) show(true); }, 500);
+      return;
+    }
+  }
+  last = ts; paint(); raf = requestAnimationFrame(tick);
+}
+const C = 2*Math.PI*27;
+function paint(){
+  const total = settings.dur*1000;
+  const k = Math.max(0, Math.min(1, remain/total));
+  document.getElementById('num').textContent = Math.ceil(remain/1000);
+  document.getElementById('ring').setAttribute('stroke-dashoffset', (C*(1-k)).toFixed(1));
+  document.getElementById('ring').setAttribute('stroke', k<0.25 ? '#FF6B6B' : '#FF8A3D');
+}
+function renderDots(){
+  document.getElementById('dots').innerHTML = order.map(()=>'<i></i>').join('');
+}
+function updateDots(){
+  const ds = document.getElementById('dots').children;
+  for(let i=0;i<ds.length;i++){ ds[i].className = i<idx ? 'done' : (i===idx ? 'cur' : ''); }
+}
+function finish(){
+  running = false; if(raf) cancelAnimationFrame(raf);
+  if('speechSynthesis' in window){ speechSynthesis.cancel(); }
+  speak('听写完成，请家长帮忙检查一下。', 0.9);
+  document.getElementById('run').style.display='none';
+  document.getElementById('done').style.display='block';
+  document.getElementById('dn').textContent = order.length;
+  const g = document.getElementById('grid'); g.innerHTML='';
+  order.forEach((c,i)=>{ const d=document.createElement('div'); d.className='cell'; d.innerHTML='<u>'+(i+1)+'</u>'+c; g.appendChild(d); });
+}
+
+/* 控制按钮 */
+document.getElementById('start').onclick = start;
+document.getElementById('test').onclick = (e)=>{ e.target.textContent='🔊 正在试听…'; speak(['大海的海，海边的海。']); setTimeout(()=>{e.target.textContent='🔊 先试听一下语音';},2500); };
+document.getElementById('fillBtn').onclick = ()=> openFill();
+document.getElementById('clearBtn').onclick = ()=>{
+  if(chars.length && confirm('清空整个生字清单？组词提示会保留。')){ chars = []; renderChips(); save('tx_chars', chars); toast('已清空'); }
+};
+document.getElementById('fillCancel').onclick = closeFill;
+document.getElementById('fillSave').onclick = saveFill;
+document.getElementById('modal').onclick = (e)=>{ if(e.target.id==='modal') closeFill(); };
+document.getElementById('repeat').onclick = ()=>{ speak([curText]); };
+document.getElementById('slow').onclick = ()=>{ speak([curText], Math.max(0.5, settings.rate-0.2)); toast('慢速再念一遍'); };
+document.getElementById('next').onclick = ()=>{ if(idx<order.length-1){ idx++; show(true); } else finish(); };
+document.getElementById('prevBtn').onclick = ()=>{ if(idx>0){ idx--; show(true); } };
+document.getElementById('pause').onclick = (e)=>{
+  paused = !paused;
+  e.target.textContent = paused ? '▶ 继续' : '⏸ 暂停';
+  if(paused){ if('speechSynthesis' in window) speechSynthesis.pause(); }
+  else { if('speechSynthesis' in window) speechSynthesis.resume(); last = 0; }
+};
+document.getElementById('reveal').onclick = (e)=>{
+  revealed = !revealed;
+  document.getElementById('box').innerHTML = revealed
+    ? '<span class="ans">'+order[idx]+'</span>'
+    : '<span class="pen">✍️</span>';
+  e.target.textContent = revealed ? '🙈 藏起来' : '👀 看答案';
+};
+document.getElementById('quit').onclick = ()=>{ if(confirm('结束这次听写吗？')) finish(); };
+document.getElementById('again').onclick = start;
+document.getElementById('back').onclick = ()=>{
+  document.getElementById('done').style.display='none';
+  document.getElementById('setup').style.display='block';
+};
+
+/* 初始化 */
+chars = load('tx_chars', []);
+renderChips();
+window.addEventListener('beforeunload', ()=> save('tx_chars', chars));
+</script>
+</body>
+</html>
