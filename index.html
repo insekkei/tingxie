@@ -141,13 +141,6 @@
       <div class="prev" id="prev"><img id="prevImg" alt="生字表"></div>
       <div class="prog" id="ocrProg" style="display:none"><i id="ocrBar"></i></div>
       <div class="note" id="ocrMsg"></div>
-      <div id="rawWrap" style="display:none;margin-top:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <span style="font-size:13px;color:var(--sub);font-weight:600">📄 识别原文（按图片换行，方便对照）</span>
-          <button class="btn sm ghost" id="copyRaw" style="padding:4px 10px;font-size:13px">复制</button>
-        </div>
-        <pre id="rawOut" style="white-space:pre-wrap;word-break:break-all;background:#FAF7F2;border:1px solid #EADFD2;border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.9;font-family:inherit;color:#5A4A3A;margin:0"></pre>
-      </div>
 
       <div style="margin-top:14px">
         <label class="field">也可以直接粘贴 / 输入生字（不用图片）</label>
@@ -1018,7 +1011,6 @@ function cropCanvas(src, b, pad, targetH){
 
 async function runOCR(file){
   const prog = document.getElementById('ocrProg'), bar = document.getElementById('ocrBar'), msg = document.getElementById('ocrMsg');
-  document.getElementById('rawWrap').style.display = 'none';
   prog.style.display='block'; bar.style.width='2%';
   msg.innerHTML = '⏳ 正在加载中文识别引擎（首次约 10–30 秒，之后会快很多）…';
   try{
@@ -1101,12 +1093,8 @@ async function runOCR(file){
 
   bar.style.width='100%';
   if(best && best.uniq.length){
-    /* 展示带原始换行的识别原文，方便和照片对照 */
-    const rawWrap = document.getElementById('rawWrap'), rawOut = document.getElementById('rawOut');
+    /* 生字清单按图片的行分组加入 */
     const rawText = (best.raw && best.raw.replace(/\n/g,'')) ? best.raw : best.uniq.join('');
-    rawOut.textContent = rawText;
-    rawWrap.style.display = 'block';
-    /* 生字清单也按图片的行分组加入 */
     const n = addChars(rawText);
     let extra = '';
     if(best.low && best.low.length){
@@ -1114,8 +1102,7 @@ async function runOCR(file){
     }
     msg.innerHTML = '✅ 识别出 <b>' + n + '</b> 个生字（' + best.label + '，按生字表顺序），已加入清单。'
       + '<b style="color:#E8543F">请务必逐个核对！</b>认错/多认的点一下改、点 × 删。'
-      + extra
-      + '<br>楷体字仍可能认错，最稳的办法：把生字表照片发到 WorkBuddy 对话框里，老师帮你转成文字，复制粘贴回来。';
+      + extra;
   }else{
     msg.innerHTML = '⚠️ 没认出字来。可以换一张更清楚的照片（正对着拍、光线足、字占画面大），或把照片发到 WorkBuddy 对话框里让老师帮忙转文字，再粘贴回来。';
   }
@@ -1378,12 +1365,6 @@ document.getElementById('dropMissBtn').onclick = ()=>{
 };
 document.getElementById('clearBtn').onclick = ()=>{
   if(chars.length && confirm('清空整个生字清单？组词提示会保留。')){ lines = []; syncChars(); renderChips(); saveLines(); toast('已清空'); }
-};
-document.getElementById('copyRaw').onclick = ()=>{
-  const t = document.getElementById('rawOut').textContent;
-  const done = ()=> toast('识别原文已复制');
-  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done).catch(()=>{}); }
-  else{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }
 };
 document.getElementById('fillCancel').onclick = closeFill;
 document.getElementById('fillSave').onclick = saveFill;
