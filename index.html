@@ -1115,7 +1115,7 @@ function preprocess(file){
     const img = new Image();
     img.onload = ()=>{
       const w = img.naturalWidth, h = img.naturalHeight, mx = Math.max(w,h);
-      const scale = mx < 1400 ? Math.min(3, 1400/mx) : (mx > 2400 ? 2400/mx : 1);
+      const scale = mx < 2600 ? Math.min(3, 2600/mx) : (mx > 3200 ? 3200/mx : 1);
       const cv = document.createElement('canvas');
       cv.width = Math.round(w*scale); cv.height = Math.round(h*scale);
       const ctx = cv.getContext('2d', { willReadFrequently: true });
